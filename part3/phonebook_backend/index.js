@@ -135,19 +135,3 @@ const unknownEndpoint = (request, response) => {
 };
 
 app.use(unknownEndpoint);
-
-let __requestLogger_log_serial_number__ = 0;
-function requestLogger(request, response, next) {
-  console.log("--- [ Request ] ---");
-  console.log("Method:", request.method);
-  console.log("Path:  ", request.path);
-  console.log("Body:  ", request.body);
-  console.log(
-    "Serial No.:",
-    __requestLogger_log_serial_number__,
-  );
-  console.log("--- [ END LOG ] ---");
-
-  __requestLogger_log_serial_number__ += 1;
-  next();
-}
