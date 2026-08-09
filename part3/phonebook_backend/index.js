@@ -1,5 +1,14 @@
 require("dotenv").config();
 const Person = require("./models/person");
+const {
+  MissingFieldError,
+  DuplicateNameError,
+  NotFoundError,
+} = require("./errors");
+const {
+  unknownEndpoint,
+  errorHandler,
+} = require("./middleware/errorHandler");
 
 const express = require("express");
 const morgan = require("morgan");
@@ -23,6 +32,12 @@ app.use(
   ),
 );
 
+// Wraps an async route handler so a rejected promise (or thrown error)
+// is forwarded to next(error) instead of needing a try/catch in every
+// route. This is what lets routes stay error-handling-free below.
+const asyncHandler = (fn) => (request, response, next) =>
+  Promise.resolve(fn(request, response, next)).catch(next);
+
 const getInfo = (headcount) => {
   const date = new Date().toString();
   return `<p>Phonebook has info for ${headcount} people.</p><p>${date}</p>`;
@@ -35,119 +50,92 @@ app.get("/", (request, response) => {
   );
 });
 
-app.get("/api/persons", (request, response, next) => {
-  Person.find({})
-    .then((persons) => response.json(persons))
-    .catch((error) => next(error));
-});
+app.get(
+  "/api/persons",
+  asyncHandler(async (request, response) => {
+    const persons = await Person.find({});
+    response.json(persons);
+  }),
+);
 
-app.get("/api/persons/:id", (request, response, next) => {
-  Person.findById(request.params.id)
-    .then((person) => {
-      if (person) {
-        response.json(person);
-      } else {
-        response
-          .status(404)
-          .json({ error: "The requested id does not exist." });
-      }
-    })
-    .catch((error) => next(error));
-});
+app.get(
+  "/api/persons/:id",
+  asyncHandler(async (request, response) => {
+    const person = await Person.findById(request.params.id);
+    if (!person) {
+      throw new NotFoundError();
+    }
+    response.json(person);
+  }),
+);
 
-app.get("/info", (request, response, next) => {
-  Person.countDocuments({})
-    .then((headcount) => response.send(getInfo(headcount)))
-    .catch((error) => next(error));
-});
+app.get(
+  "/info",
+  asyncHandler(async (request, response) => {
+    const headcount = await Person.countDocuments({});
+    response.send(getInfo(headcount));
+  }),
+);
 
-app.delete("/api/persons/:id", (request, response, next) => {
-  Person.findByIdAndDelete(request.params.id)
-    .then(() => {
-      response.status(204).end();
-    })
-    .catch((error) => next(error));
-});
+app.delete(
+  "/api/persons/:id",
+  asyncHandler(async (request, response) => {
+    await Person.findByIdAndDelete(request.params.id);
+    response.status(204).end();
+  }),
+);
 
-app.post("/api/persons", (request, response, next) => {
-  const body = request.body;
-  if (!body.name || !body.number) {
-    const field = !body.name ? "name" : "number";
-    return response.status(400).json({
-      error: `missing ${field}, the ${field} is required.`,
-    });
-  }
+app.post(
+  "/api/persons",
+  asyncHandler(async (request, response) => {
+    const { name, number } = request.body;
 
-  Person.findOne({ name: body.name })
-    .then((existingPerson) => {
-      if (existingPerson) {
-        return response.status(409).json({
-          error:
-            "The requested name is already taken. Name must be unique.",
-        });
-      }
+    if (!name) {
+      throw new MissingFieldError("name");
+    }
+    if (!number) {
+      throw new MissingFieldError("number");
+    }
 
-      const person = new Person({
-        name: body.name,
-        number: body.number,
-      });
+    const existingPerson = await Person.findOne({ name });
+    if (existingPerson) {
+      throw new DuplicateNameError();
+    }
 
-      person
-        .save()
-        .then((savedPerson) => response.json(savedPerson))
-        .catch((error) => next(error));
-    })
-    .catch((error) => next(error));
-});
+    const person = new Person({ name, number });
+    const savedPerson = await person.save();
+    response.json(savedPerson);
+  }),
+);
 
 // Update an existing person's number (used when the frontend detects a
 // duplicate name and the user confirms overwriting it).
-app.put("/api/persons/:id", (request, response, next) => {
-  const { name, number } = request.body;
+app.put(
+  "/api/persons/:id",
+  asyncHandler(async (request, response) => {
+    const { name, number } = request.body;
 
-  if (!number) {
-    return response.status(400).json({
-      error: "missing number, the number is required.",
-    });
-  }
+    if (!number) {
+      throw new MissingFieldError("number");
+    }
 
-  Person.findByIdAndUpdate(
-    request.params.id,
-    { name, number },
-    { new: true, runValidators: true, context: "query" },
-  )
-    .then((updatedPerson) => {
-      if (updatedPerson) {
-        response.json(updatedPerson);
-      } else {
-        response
-          .status(404)
-          .json({ error: "The requested id does not exist." });
-      }
-    })
-    .catch((error) => next(error));
-});
+    const updatedPerson = await Person.findByIdAndUpdate(
+      request.params.id,
+      { name, number },
+      { new: true, runValidators: true, context: "query" },
+    );
+
+    if (!updatedPerson) {
+      throw new NotFoundError();
+    }
+    response.json(updatedPerson);
+  }),
+);
 
 // Unknown Endpoint Middleware (must be registered after valid routes)
-const unknownEndpoint = (request, response) => {
-  response.status(404).send({ error: "unknown endpoint" });
-};
 app.use(unknownEndpoint);
 
 // Centralized error handler (must be registered last)
-const errorHandler = (error, request, response, next) => {
-  console.error(error.message);
-
-  if (error.name === "CastError") {
-    return response
-      .status(400)
-      .json({ error: "malformatted id" });
-  } else if (error.name === "ValidationError") {
-    return response.status(400).json({ error: error.message });
-  }
-
-  next(error);
-};
 app.use(errorHandler);
 
 const PORT = process.env.PORT;
