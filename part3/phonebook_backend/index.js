@@ -3,7 +3,6 @@ const Person = require("./models/person");
 
 const express = require("express");
 const morgan = require("morgan");
-const axios = require("axios");
 
 const app = express();
 
@@ -12,7 +11,7 @@ app.use(express.json());
 app.use(express.static("dist"));
 
 morgan.token("body", (req) => {
-  if (req.method === "POST") {
+  if (req.method === "POST" || req.method === "PUT") {
     return JSON.stringify(req.body);
   }
   return "";
@@ -24,10 +23,7 @@ app.use(
   ),
 );
 
-let persons = [];
-
-const getInfo = () => {
-  const headcount = persons.length;
+const getInfo = (headcount) => {
   const date = new Date().toString();
   return `<p>Phonebook has info for ${headcount} people.</p><p>${date}</p>`;
 };
@@ -39,56 +35,41 @@ app.get("/", (request, response) => {
   );
 });
 
-app.get("/api/persons", (request, response) => {
-  Person.find({}).then((persons) => {
-    response.json(persons);
-  });
+app.get("/api/persons", (request, response, next) => {
+  Person.find({})
+    .then((persons) => response.json(persons))
+    .catch((error) => next(error));
 });
 
-app.get("/api/persons/:id", (request, response) => {
-  const id = request.params.id;
-  const person = persons.find((p) => p.id === id);
-
-  if (person) {
-    response.json(person);
-  } else {
-    response
-      .status(404)
-      .json({ error: "The requested id does not exist." });
-  }
+app.get("/api/persons/:id", (request, response, next) => {
+  Person.findById(request.params.id)
+    .then((person) => {
+      if (person) {
+        response.json(person);
+      } else {
+        response
+          .status(404)
+          .json({ error: "The requested id does not exist." });
+      }
+    })
+    .catch((error) => next(error));
 });
 
-app.get("/info", (request, response) => {
-  response.send(getInfo());
+app.get("/info", (request, response, next) => {
+  Person.countDocuments({})
+    .then((headcount) => response.send(getInfo(headcount)))
+    .catch((error) => next(error));
 });
 
-app.delete("/api/persons/:id", (request, response) => {
-  const id = request.params.id;
-  let okay = false;
-  Person.findByIdAndDelete(id).then((result) => {
-    okay = true;
-  });
-
-  if (okay) {
-    persons = persons.filter((p) => p.id !== id);
-    response.status(204).end();
-  } else {
-    console.log(
-      `An error occured while deleting person with id=${id}`,
-    );
-  }
+app.delete("/api/persons/:id", (request, response, next) => {
+  Person.findByIdAndDelete(request.params.id)
+    .then(() => {
+      response.status(204).end();
+    })
+    .catch((error) => next(error));
 });
 
-const generateId = () => {
-  const max = 1000000;
-  let newId;
-  do {
-    newId = String(Math.floor(Math.random() * max));
-  } while (persons.some((p) => p.id === newId));
-  return newId;
-};
-
-app.post("/api/persons", (request, response) => {
+app.post("/api/persons", (request, response, next) => {
   const body = request.body;
   if (!body.name || !body.number) {
     const field = !body.name ? "name" : "number";
@@ -97,28 +78,54 @@ app.post("/api/persons", (request, response) => {
     });
   }
 
-  if (persons.find((p) => p.name === body.name)) {
-    return response.status(409).json({
-      error:
-        "The requested name is already taken. Name must be unique.",
+  Person.findOne({ name: body.name })
+    .then((existingPerson) => {
+      if (existingPerson) {
+        return response.status(409).json({
+          error:
+            "The requested name is already taken. Name must be unique.",
+        });
+      }
+
+      const person = new Person({
+        name: body.name,
+        number: body.number,
+      });
+
+      person
+        .save()
+        .then((savedPerson) => response.json(savedPerson))
+        .catch((error) => next(error));
+    })
+    .catch((error) => next(error));
+});
+
+// Update an existing person's number (used when the frontend detects a
+// duplicate name and the user confirms overwriting it).
+app.put("/api/persons/:id", (request, response, next) => {
+  const { name, number } = request.body;
+
+  if (!number) {
+    return response.status(400).json({
+      error: "missing number, the number is required.",
     });
   }
 
-  const personObject = {
-    name: body.name,
-    number: body.number,
-  };
-  const person = new Person(personObject);
-
-  person
-    .save()
-    .then((savedPerson) => {
-      persons = persons.concat(personObject);
-      response.json(savedPerson);
+  Person.findByIdAndUpdate(
+    request.params.id,
+    { name, number },
+    { new: true, runValidators: true, context: "query" },
+  )
+    .then((updatedPerson) => {
+      if (updatedPerson) {
+        response.json(updatedPerson);
+      } else {
+        response
+          .status(404)
+          .json({ error: "The requested id does not exist." });
+      }
     })
-    .catch(() => {
-      console.log("Something bad happened.");
-    });
+    .catch((error) => next(error));
 });
 
 // Unknown Endpoint Middleware (must be registered after valid routes)
@@ -127,11 +134,23 @@ const unknownEndpoint = (request, response) => {
 };
 app.use(unknownEndpoint);
 
+// Centralized error handler (must be registered last)
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message);
+
+  if (error.name === "CastError") {
+    return response
+      .status(400)
+      .json({ error: "malformatted id" });
+  } else if (error.name === "ValidationError") {
+    return response.status(400).json({ error: error.message });
+  }
+
+  next(error);
+};
+app.use(errorHandler);
+
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-axios
-  .get(`http://localhost:${PORT}/api/persons`)
-  .then((response) => (persons = response.data));

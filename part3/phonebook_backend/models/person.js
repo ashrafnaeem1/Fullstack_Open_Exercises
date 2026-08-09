@@ -43,10 +43,10 @@ function get_masked_uri() {
   let output_uri = uri;
   [DB_HOST, DB_USER, DB_PASS, DB_APP_NAME].forEach(
     (confidential) =>
-    (output_uri = output_uri.replaceAll(
-      confidential,
-      "[CONFIDENTIAL]",
-    )),
+      (output_uri = output_uri.replaceAll(
+        confidential,
+        "[CONFIDENTIAL]",
+      )),
   );
   return output_uri;
 }

@@ -20,85 +20,94 @@ const App = () => {
   const addPerson = (event) => {
     event.preventDefault();
 
-    if (!newName) {
+    if (!newName || !newNumber) {
       setNotification(
-        "Cannot submit a contact with an empty name.",
+        "Cannot submit a contact with an empty name or number.",
       );
       setStatus("error");
-      console.log("Prevented attempt to submit an empty name.");
+      console.log(
+        "Prevented attempt to submit an empty name or number.",
+      );
       return;
     }
 
-    // prettier-ignore-start
-    if (persons.some((p) => p.name === newName)) {
-      if (
-        window.confirm(
-          `${newName} is already added to phonebook, replace the old number with a new one.`,
-        )
-      ) {
-        let person = null;
-        const index = persons.map((p, i) => {
-          if (p.name === newName) {
-            person = p;
-            return i;
-          }
-        });
-        const updatedPerson = {
-          ...person,
-          number: newNumber,
-        };
-        if (person) {
-          console.log(
-            `updating db ${updatedPerson.name} to ${updatedPerson.number}`,
-          );
-          personService.update(
-            person.id,
-            updatedPerson,
-            (error) => {
-              setNotification(
-                `Information of "${person.name}" has already been removed from server.`,
-              );
-              setStatus("error");
-              console.log(
-                "An attempt to change a number that has been deleted from database has been detected.",
-              );
-              console.log(
-                `The following exception has been caught:\n${error}`,
-              );
-            },
+    const existingPerson = persons.find(
+      (p) => p.name === newName,
+    );
+
+    if (existingPerson) {
+      const confirmed = window.confirm(
+        `${newName} is already added to phonebook, replace the old number with a new one?`,
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      const updatedPersonObject = {
+        ...existingPerson,
+        number: newNumber,
+      };
+
+      personService
+        .update(existingPerson.id, updatedPersonObject)
+        .then((returnedPerson) => {
+          setPersons(
+            persons.map((p) =>
+              p.id !== existingPerson.id ? p : returnedPerson,
+            ),
           );
           setNotification(
-            `Successfully changed number of "${person.name}".`,
+            `Successfully changed number of "${returnedPerson.name}".`,
           );
           setStatus("success");
-          const persons_copy = [...persons];
-          persons_copy[index] = updatedPerson;
-          console.log(persons_copy[index]);
-          setPersons(persons_copy);
-        }
-      }
+          setNewName("");
+          setNewNumber("");
+        })
+        .catch((error) => {
+          if (error.response && error.response.status === 404) {
+            // Person was deleted on the server (e.g. by another
+            // client/instance) after this page loaded its list.
+            setPersons(
+              persons.filter((p) => p.id !== existingPerson.id),
+            );
+            setNotification(
+              `Information of "${existingPerson.name}" has already been removed from server.`,
+            );
+          } else {
+            setNotification(
+              `Failed to update "${existingPerson.name}".`,
+            );
+          }
+          setStatus("error");
+        });
+
       return;
     }
-    // prettier-ignore-end
-
-    const maxId =
-      persons.length > 0
-        ? Math.max(...persons.map((p) => Number(p.id)))
-        : 0;
 
     const person = {
       name: newName,
       number: newNumber,
-      id: String(maxId + 1),
     };
 
-    personService.create(person).then((returnedPerson) => {
-      setPersons(persons.concat(returnedPerson));
-      setNotification(`Added "${person.name}" successfully.`);
-      setStatus("success");
-      setNewName("");
-      setNewNumber("");
-    });
+    personService
+      .create(person)
+      .then((returnedPerson) => {
+        setPersons(persons.concat(returnedPerson));
+        setNotification(
+          `Added "${returnedPerson.name}" successfully.`,
+        );
+        setStatus("success");
+        setNewName("");
+        setNewNumber("");
+      })
+      .catch((error) => {
+        setNotification(
+          error.response?.data?.error ||
+            `Failed to add "${person.name}".`,
+        );
+        setStatus("error");
+      });
   };
 
   const deletePerson = (person) => {

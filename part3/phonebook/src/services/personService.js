@@ -11,11 +11,12 @@ const create = (newPersonObject) => {
   return request.then((response) => response.data);
 };
 
-const update = (id, newPersonObject, fallback) => {
-  return axios
-    .put(`${base_url}/${id}`, newPersonObject)
-    .then((response) => response.data)
-    .catch((error) => fallback(error));
+const update = (id, newPersonObject) => {
+  const request = axios.put(
+    `${base_url}/${id}`,
+    newPersonObject,
+  );
+  return request.then((response) => response.data);
 };
 
 const remove = (id) => {
