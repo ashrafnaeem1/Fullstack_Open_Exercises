@@ -57,14 +57,16 @@ const App = () => {
               p.id !== existingPerson.id ? p : returnedPerson,
             ),
           );
+          setStatus("success");
           setNotification(
             `Successfully changed number of "${returnedPerson.name}".`,
           );
-          setStatus("success");
+
           setNewName("");
           setNewNumber("");
         })
         .catch((error) => {
+          setStatus("error");
           if (error.response && error.response.status === 404) {
             // Person was deleted on the server (e.g. by another
             // client/instance) after this page loaded its list.
@@ -79,7 +81,6 @@ const App = () => {
               `Failed to update "${existingPerson.name}".`,
             );
           }
-          setStatus("error");
         });
 
       return;
@@ -94,19 +95,19 @@ const App = () => {
       .create(person)
       .then((returnedPerson) => {
         setPersons(persons.concat(returnedPerson));
+        setStatus("success");
         setNotification(
           `Added "${returnedPerson.name}" successfully.`,
         );
-        setStatus("success");
         setNewName("");
         setNewNumber("");
       })
       .catch((error) => {
+        setStatus("error");
         setNotification(
           error.response?.data?.error ||
             `Failed to add "${person.name}".`,
         );
-        setStatus("error");
       });
   };
 
@@ -122,8 +123,8 @@ const App = () => {
       (p) => p.id !== person.id,
     );
     setPersons(updatedPersons);
-    setNotification(`Successfully removed "${person.name}".`);
     setStatus("success");
+    setNotification(`Successfully removed "${person.name}".`);
   };
 
   const personsToShow = persons.filter((person) =>
