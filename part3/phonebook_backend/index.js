@@ -64,21 +64,19 @@ app.get("/info", (request, response) => {
 
 app.delete("/api/persons/:id", (request, response) => {
   const id = request.params.id;
-  let isDeleted = false;
+  let okay = false;
   Person.findByIdAndDelete(id).then((result) => {
-    console.log(`deleted person with id ${id}`)
-    isDeleted = true;
-  }).then(() => {
-    if (isDeleted) {
-      persons = persons.filter((p) => p.id !== id);
-      response.status(204).end();
-    } else {
-      console.log(
-        `An error occured while deleting person with id ${id}`,
-      );
-    }
+    okay = true;
   });
 
+  if (okay) {
+    persons = persons.filter((p) => p.id !== id);
+    response.status(204).end();
+  } else {
+    console.log(
+      `An error occured while deleting person with id=${id}`,
+    );
+  }
 });
 
 const generateId = () => {
