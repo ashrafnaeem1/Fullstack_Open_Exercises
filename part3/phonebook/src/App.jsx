@@ -5,6 +5,8 @@ import Display from "./components/Display";
 import personService from "./services/personService";
 import Notification from "./components/Notification";
 
+import "./App.css";
+
 const App = () => {
   const [persons, setPersons] = useState([]);
   useEffect(() => {
@@ -144,6 +146,13 @@ const App = () => {
         setNewNumber={setNewNumber}
         addPerson={addPerson}
       />
+
+      <p>
+        <span className="delayNotice">
+          Note that it may take some while to show/update
+          contacts/persons-list.
+        </span>
+      </p>
 
       <Display
         personsToShow={personsToShow}

@@ -1,10 +1,16 @@
+require("dotenv").config();
+const Person = require("./models/person");
+
 const express = require("express");
+const morgan = require("morgan");
+const axios = require("axios");
 
 const app = express();
-app.use(express.json());
 
-const morgan = require("morgan");
-// newly created token, `:body`
+// Middleware
+app.use(express.json());
+app.use(express.static("dist"));
+
 morgan.token("body", (req) => {
   if (req.method === "POST") {
     return JSON.stringify(req.body);
@@ -18,88 +24,71 @@ app.use(
   ),
 );
 
-app.use(express.static("dist"));
-
-let persons = [
-  {
-    id: "1",
-    name: "Arto Hellas",
-    number: "040-123456",
-  },
-  {
-    id: "2",
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
-  },
-  {
-    id: "3",
-    name: "Dan Abramov",
-    number: "12-43-234345",
-  },
-  {
-    id: "4",
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
-  },
-];
-const getIds = () => [...persons.map((person) => person.id)];
+let persons = [];
 
 const getInfo = () => {
   const headcount = persons.length;
-  const date = Date().toString();
-
-  const info = `<p>Phonebook has info for ${headcount} people.</p>
-                <p>${date}</p>`;
-
-  return info;
+  const date = new Date().toString();
+  return `<p>Phonebook has info for ${headcount} people.</p><p>${date}</p>`;
 };
 
+// Routes
 app.get("/", (request, response) => {
-  response.send("<h1>Hello World!</h1>");
+  response.send(
+    "<h1>If you are seeing this message then frontend integration is faulty.</h1>",
+  );
 });
 
 app.get("/api/persons", (request, response) => {
-  response.json(persons);
+  Person.find({}).then((persons) => {
+    response.json(persons);
+  });
 });
 
 app.get("/api/persons/:id", (request, response) => {
   const id = request.params.id;
-  const person = persons.find((person) => person.id === id);
+  const person = persons.find((p) => p.id === id);
 
   if (person) {
     response.json(person);
   } else {
-    response.statusMessage = "The requested id does not exist.";
-    response.status(404).end();
+    response
+      .status(404)
+      .json({ error: "The requested id does not exist." });
   }
 });
 
 app.get("/info", (request, response) => {
-  const info = getInfo();
-  response.send(info);
+  response.send(getInfo());
 });
 
 app.delete("/api/persons/:id", (request, response) => {
   const id = request.params.id;
-  const old_copy = persons;
-  persons = persons.filter((person) => person.id !== id);
+  let okay = false;
+  Person.findByIdAndDelete(id).then((result) => {
+    okay = true;
+  });
 
-  response.status(204).end();
+  if (okay) {
+    persons = persons.filter((p) => p.id !== id);
+    response.status(204).end();
+  } else {
+    console.log(
+      `An error occured while deleting person with id=${id}`,
+    );
+  }
 });
 
 const generateId = () => {
   const max = 1000000;
   let newId;
-
-  // Keep generating a new ID as long as it exists in the phonebook
   do {
     newId = String(Math.floor(Math.random() * max));
-  } while (persons.some((person) => person.id === newId));
-
+  } while (persons.some((p) => p.id === newId));
   return newId;
 };
 
-app.post("/api/persons/", (request, response) => {
+app.post("/api/persons", (request, response) => {
   const body = request.body;
   if (!body.name || !body.number) {
     const field = !body.name ? "name" : "number";
@@ -108,30 +97,41 @@ app.post("/api/persons/", (request, response) => {
     });
   }
 
-  if (persons.find((person) => person.name === body.name)) {
+  if (persons.find((p) => p.name === body.name)) {
     return response.status(409).json({
       error:
         "The requested name is already taken. Name must be unique.",
     });
   }
 
-  const person = {
-    id: generateId(),
+  const personObject = {
     name: body.name,
-    number: body.number || "",
+    number: body.number,
   };
+  const person = new Person(personObject);
 
-  persons = persons.concat(person);
-  response.json(person);
+  person
+    .save()
+    .then((savedPerson) => {
+      persons = persons.concat(personObject);
+      response.json(savedPerson);
+    })
+    .catch(() => {
+      console.log("Something bad happened.");
+    });
 });
 
-const PORT = process.env.PORT || 3001;
+// Unknown Endpoint Middleware (must be registered after valid routes)
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: "unknown endpoint" });
+};
+app.use(unknownEndpoint);
+
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-const unknownEndpoint = (request, response) => {
-  response.status(404).send({ error: "unknown endpoint" });
-};
-
-app.use(unknownEndpoint);
+axios
+  .get(`http://localhost:${PORT}/api/persons`)
+  .then((response) => (persons = response.data));
