@@ -128,8 +128,8 @@ const App = () => {
       {
         // prettier-ignore
         notification
-        ?<Notification message={notification} status={status}/>
-        :<></>
+          ? <Notification message={notification} status={status} />
+          : <></>
       }
 
       <Filter
