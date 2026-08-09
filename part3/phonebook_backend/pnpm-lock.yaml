@@ -210,6 +210,9 @@ importers:
       axios:
         specifier: ^1.19.0
         version: 1.19.0(debug@4.4.3)
+      cpy:
+        specifier: ^13.2.2
+        version: 13.2.2
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
