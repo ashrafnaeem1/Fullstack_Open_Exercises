@@ -90,7 +90,7 @@ const App = () => {
       });
   };
 
-  const addPerson = (event) => {
+  const handleAddPersonForm = (event) => {
     event.preventDefault();
 
     if (!newName || !newNumber) {
@@ -165,7 +165,7 @@ const App = () => {
         newNumber={newNumber}
         setNewName={setNewName}
         setNewNumber={setNewNumber}
-        addPerson={addPerson}
+        handleSubmit={handleAddPersonForm}
       />
 
       <Display

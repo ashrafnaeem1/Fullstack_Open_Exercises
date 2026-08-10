@@ -5,7 +5,7 @@ const PersonForm = ({
   newNumber,
   setNewName,
   setNewNumber,
-  addPerson,
+  handleSubmit,
 }) => {
   return (
     <div>
@@ -15,7 +15,7 @@ const PersonForm = ({
         newNumber={newNumber}
         handleNameChange={(e) => setNewName(e.target.value)}
         handleNumberChange={(e) => setNewNumber(e.target.value)}
-        handleSubmit={addPerson}
+        handleSubmit={handleSubmit}
       />
     </div>
   );
