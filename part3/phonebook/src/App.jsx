@@ -140,8 +140,12 @@ const App = () => {
     setNotification(`Successfully removed "${person.name}".`);
   };
 
-  const personsToShow = persons.filter((person) =>
-    person.name.toLowerCase().includes(filter.toLowerCase()),
+  const personsToShow = persons.filter(
+    (person) =>
+      person.name
+        .toLowerCase()
+        .includes(filter.toLowerCase()) ||
+      filter.toLowerCase().includes(person.name.toLowerCase()),
   );
 
   return (
