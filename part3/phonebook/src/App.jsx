@@ -13,79 +13,58 @@ const App = () => {
 
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
+
   const [filter, setFilter] = useState("");
-  const [notification, setNotification] = useState("hello");
+
   const [status, setStatus] = useState("");
+  const [notification, setNotification] = useState("hello");
 
-  const addPerson = (event) => {
-    event.preventDefault();
+  const updatePerson = (existingPerson) => {
+    const updatedPersonObject = {
+      ...existingPerson,
+      number: newNumber,
+    };
 
-    if (!newName || !newNumber) {
-      setNotification(
-        "Cannot submit a contact with an empty name or number.",
-      );
-      setStatus("error");
-      console.log(
-        "Prevented attempt to submit an empty name or number.",
-      );
-      return;
-    }
+    personService
+      .update(existingPerson.id, updatedPersonObject)
+      .then((returnedPerson) => {
+        setPersons(
+          persons.map((p) =>
+            p.id !== existingPerson.id ? p : returnedPerson,
+          ),
+        );
 
-    const existingPerson = persons.find(
-      (p) => p.name === newName,
-    );
+        setStatus("success");
+        setNotification(
+          `Successfully changed number of "${returnedPerson.name}".`,
+        );
 
-    if (existingPerson) {
-      const confirmed = window.confirm(
-        `${newName} is already added to phonebook, replace the old number with a new one?`,
-      );
-
-      if (!confirmed) {
-        return;
-      }
-
-      const updatedPersonObject = {
-        ...existingPerson,
-        number: newNumber,
-      };
-
-      personService
-        .update(existingPerson.id, updatedPersonObject)
-        .then((returnedPerson) => {
+        setNewName("");
+        setNewNumber("");
+      })
+      .catch((error) => {
+        setStatus("error");
+        // E:404 content not found.
+        if (error.response && error.response.status === 404) {
+          // Person was deleted on the server (e.g. by another
+          // client/instance) after this page loaded its copy of persons list.
           setPersons(
-            persons.map((p) =>
-              p.id !== existingPerson.id ? p : returnedPerson,
-            ),
+            // correct the local copy of persons array.
+            persons.filter((p) => p.id !== existingPerson.id),
           );
-          setStatus("success");
           setNotification(
-            `Successfully changed number of "${returnedPerson.name}".`,
+            `Information of "${existingPerson.name}" has already been removed from server.`,
           );
+        } else {
+          setNotification(
+            `Failed to update "${existingPerson.name}".`,
+          );
+        }
+      });
+  };
 
-          setNewName("");
-          setNewNumber("");
-        })
-        .catch((error) => {
-          setStatus("error");
-          if (error.response && error.response.status === 404) {
-            // Person was deleted on the server (e.g. by another
-            // client/instance) after this page loaded its list.
-            setPersons(
-              persons.filter((p) => p.id !== existingPerson.id),
-            );
-            setNotification(
-              `Information of "${existingPerson.name}" has already been removed from server.`,
-            );
-          } else {
-            setNotification(
-              `Failed to update "${existingPerson.name}".`,
-            );
-          }
-        });
-
-      return;
-    }
-
+  const addNewPerson = () => {
+    // logic handling addition of an actual new person.
     const person = {
       name: newName,
       number: newNumber,
@@ -109,6 +88,40 @@ const App = () => {
             `Failed to add "${person.name}".`,
         );
       });
+  };
+
+  const addPerson = (event) => {
+    event.preventDefault();
+
+    if (!newName || !newNumber) {
+      setStatus("error");
+      setNotification(
+        "Cannot submit a contact with an empty name or number.",
+      );
+      console.log(
+        "Prevented attempt to submit an empty name or number.",
+      );
+      return;
+    }
+
+    const existingPerson = persons.find(
+      (p) => p.name === newName,
+    );
+
+    if (existingPerson) {
+      const confirmed = window.confirm(
+        `${newName} is already added to phonebook, replace the old number with a new one?`,
+      );
+
+      if (confirmed) {
+        updatePerson(existingPerson);
+      }
+    }
+    // make sure to keep addNewPerson() in else block.
+    // otherwise addNewPerson() on pre-existing entries too.
+    else {
+      addNewPerson();
+    }
   };
 
   const deletePerson = (person) => {
