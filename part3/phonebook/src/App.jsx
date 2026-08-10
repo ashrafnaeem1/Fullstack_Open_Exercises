@@ -127,7 +127,7 @@ const App = () => {
   const deletePerson = (person) => {
     if (!person.id) {
       console.log(
-        `person {${person}} doesn't seem like a valid person object.`,
+        `person ${person} doesn't seem like a valid person object.`,
       );
       return;
     }
