@@ -1,3 +1,5 @@
+import "./styles/Notification.css";
+
 const Notification = ({ message, status }) => {
   if (message === null) {
     return null;
