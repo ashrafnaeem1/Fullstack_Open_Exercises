@@ -150,7 +150,7 @@ const App = () => {
 
   return (
     <>
-      <h1>Phonebook</h1>
+      <h1 className="headingAppName">Phonebook</h1>
 
       {
         // prettier-ignore
