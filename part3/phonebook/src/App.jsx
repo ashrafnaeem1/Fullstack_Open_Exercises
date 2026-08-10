@@ -153,12 +153,7 @@ const App = () => {
     <>
       <h1 className="headingAppName">Phonebook</h1>
 
-      {
-        // prettier-ignore
-        notification
-          ? <Notification message={notification} status={status} />
-          : <></>
-      }
+      <Notification message={notification} status={status} />
 
       <Filter
         filter={filter}
