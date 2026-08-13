@@ -1,6 +1,39 @@
 import "./styles/Display.css";
 
 const Display = ({ personsToShow, deletePerson }) => {
+  // Hashes a string into a consistent integer
+  const hashString = (str) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return hash;
+  };
+
+  // Generates background and text color combination
+  const stringToColorCombo = (str) => {
+    if (!str)
+      return { backgroundColor: "#e2e8f0", color: "#0f172a" };
+
+    const hash = Math.abs(hashString(str));
+
+    // Pick hue (0-360) deterministically from the string hash
+    const hue = hash % 360;
+
+    // Use light pastels for background so text is easily readable
+    const backgroundColor = `hsl(${hue}, 70%, 85%)`;
+    // Dark text matching the same hue tone
+    const textColor = `hsl(${hue}, 80%, 20%)`;
+
+    return `${backgroundColor} ${textColor}`;
+  };
+
+  // Gets the style for given text.
+  const getColorStyle = (text) => {
+    const [bg, color] = stringToColorCombo(text).split(" ");
+    return { backgroundColor: bg, color: color };
+  };
+
   return (
     <>
       <div>
@@ -21,7 +54,12 @@ const Display = ({ personsToShow, deletePerson }) => {
           </thead>
           <tbody>
             {personsToShow.map((person) => (
-              <tr key={person.name}>
+              <tr
+                key={person.name}
+                style={{
+                  ...getColorStyle(person.name),
+                }}
+              >
                 <td className="contactName">{person.name}</td>
                 <td className="contactNumber">
                   {person.number}
