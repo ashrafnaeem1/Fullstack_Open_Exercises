@@ -108,7 +108,7 @@ app.post(
   }),
 );
 
-// Update an existing person's number (used when the frontend detects a
+// Update an existing person's number (used when the webapp detects a
 // duplicate name and the user confirms overwriting it).
 app.put(
   "/api/persons/:id",
