@@ -38,7 +38,7 @@ app.use(
 const asyncHandler = (fn) => (request, response, next) =>
   Promise.resolve(fn(request, response, next)).catch(next);
 
-const getInfo = (headcount) => {
+const getInfoText = (headcount) => {
   const date = new Date().toString();
   return `<p>Phonebook has info for ${headcount} people.</p><p>${date}</p>`;
 };
@@ -73,7 +73,7 @@ app.get(
   "/info",
   asyncHandler(async (request, response) => {
     const headcount = await Person.countDocuments({});
-    response.send(getInfo(headcount));
+    response.send(getInfoText(headcount));
   }),
 );
 
