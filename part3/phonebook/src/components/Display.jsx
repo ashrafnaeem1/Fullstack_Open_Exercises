@@ -12,26 +12,38 @@ const Display = ({ personsToShow, deletePerson }) => {
 
   // Generates background and text color combination
   const stringToColorCombo = (str) => {
-    if (!str)
+    if (!str) {
+      console.log("This so bad.");
       return { backgroundColor: "#e2e8f0", color: "#0f172a" };
+    }
 
     const hash = Math.abs(hashString(str));
+    console.log(`The hash is ${hash}`);
 
     // Pick hue (0-360) deterministically from the string hash
     const hue = hash % 360;
+    console.log(`hue ${hue}`);
 
     // Use light pastels for background so text is easily readable
     const backgroundColor = `hsl(${hue}, 70%, 85%)`;
+    console.log(`bgcolor ${hue}`);
     // Dark text matching the same hue tone
     const textColor = `hsl(${hue}, 80%, 20%)`;
+    console.log(`txt color ${hue}`);
 
     return `${backgroundColor} ${textColor}`;
   };
 
   // Gets the style for given text.
   const getColorStyle = (text) => {
-    const [bg, color] = stringToColorCombo(text).split(" ");
-    return { backgroundColor: bg, color: color };
+    let [bg, color] = stringToColorCombo(text).split(") h");
+    bg = bg + ')';
+    color = 'h' + color;
+    const style_out = { backgroundColor: bg, color: color };
+    console.log(
+      `HERE: ${style_out.backgroundColor} ${style_out.color}`,
+    );
+    return style_out;
   };
 
   return (
