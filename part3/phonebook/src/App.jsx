@@ -106,7 +106,9 @@ const App = () => {
     }
 
     const existingPerson = persons.find(
-      (p) => p.name === newName,
+      (p) =>
+        p.name.strip().toLowerCase() ===
+        newName.strip().toLowerCase(),
     );
 
     if (existingPerson) {
