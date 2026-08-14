@@ -112,9 +112,8 @@ const App = () => {
     );
 
     if (existingPerson) {
-      setNewName(existingPerson.name);
       const confirmed = window.confirm(
-        `${newName} is already added to phonebook, replace the old number with a new one?`,
+        `${existingPerson.name} is already added to phonebook, replace the old number with a new one?`,
       );
 
       if (confirmed) {
