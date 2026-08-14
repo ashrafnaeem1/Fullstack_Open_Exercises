@@ -144,9 +144,13 @@ const App = () => {
   const personsToShow = persons.filter(
     (person) =>
       person.name
+        .trim()
         .toLowerCase()
-        .includes(filter.toLowerCase()) ||
-      filter.toLowerCase().includes(person.name.toLowerCase()),
+        .includes(filter.trim().toLowerCase()) ||
+      filter
+        .trim()
+        .toLowerCase()
+        .includes(person.name.trim().toLowerCase()),
   );
 
   return (
