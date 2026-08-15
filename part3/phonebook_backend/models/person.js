@@ -27,7 +27,7 @@ mongoose
 const personSchema = new mongoose.Schema({
   name: {
     type: String,
-    minLength: [3, "Name must be atleast 3 characters long."],
+    minLength: [3, "\nName must be atleast 3 characters long.\n"],
   },
   number: {
     type: String,
