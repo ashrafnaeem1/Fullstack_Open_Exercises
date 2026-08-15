@@ -34,7 +34,7 @@ const personSchema = new mongoose.Schema({
     validate: [
       (num) => /^(\d{2}-\d{6,}|\d{3}-\d{5,})$/.test(num),
       "\n" +
-        "The number must be of format dd-ddddddX or ddd-dddddX,            \n" +
+        "The number must be of format dd-ddddddX or ddd-dddddX,          \n" +
         "where d represents a mandatory digit,                           \n" +
         "hyphen '-' represents a literal hyphen '-', and                 \n" +
         "X represents an arbitary number of [optional] more digits.      \n" +
