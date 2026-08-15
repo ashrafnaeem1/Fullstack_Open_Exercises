@@ -25,10 +25,22 @@ mongoose
   });
 
 const personSchema = new mongoose.Schema({
-  name: { type: String, minLength: 3 },
+  name: {
+    type: String,
+    minLength: [3, "Name must be atleast 3 characters long."],
+  },
   number: {
     type: String,
-    validate: (num) => /^\d{2,3}-\d{5,}$/.test(num),
+    validate: [
+      (num) => /^\d{2,3}-\d{5,}$/.test(num),
+      "\n" +
+        "The number must be of format dd-ddddddX or ddd-dddddX,            \n" +
+        "where d represents a mandatory digit,                           \n" +
+        "hyphen '-' represents a literal hyphen '-', and                 \n" +
+        "X represents an arbitary number of [optional] more digits.      \n" +
+        "For eg. 09-1234556 and 040-22334455 are valid phone numbers but \n" +
+        "eg. 1234556, 1-22334455 and 10-22-334455 are invalid.           \n",
+    ],
   },
 });
 
