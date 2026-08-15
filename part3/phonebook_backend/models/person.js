@@ -32,7 +32,7 @@ const personSchema = new mongoose.Schema({
   number: {
     type: String,
     validate: [
-      (num) => /^\d{2,3}-\d{5,}$/.test(num),
+      (num) => /^(\d{2}-\d{6,}|\d{3}-\d{5,})$/.test(num),
       "\n" +
         "The number must be of format dd-ddddddX or ddd-dddddX,            \n" +
         "where d represents a mandatory digit,                           \n" +
