@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./styles/Display.css";
 
 const POKEMON_BASE_HUES = {
@@ -11,11 +11,12 @@ const POKEMON_BASE_HUES = {
   purple: { hue: 270, sat: 65, light: 82 },
   red: { hue: 0, sat: 75, light: 82 },
   white: { hue: 210, sat: 10, light: 95 },
-  yellow: { hue: 50, sat: 85, light: 80 }
+  yellow: { hue: 50, sat: 85, light: 80 },
 };
 
 const Display = ({ personsToShow, deletePerson }) => {
   const [personStyles, setPersonStyles] = useState({});
+  const styleCache = useRef({});
 
   const hashFNV1a = (str) => {
     let hash = 0x811c9dc5;
@@ -39,7 +40,7 @@ const Display = ({ personsToShow, deletePerson }) => {
     const hue = hash % 360;
     return {
       backgroundColor: `hsl(${hue}, 70%, 85%)`,
-      color: `hsl(${hue}, 80%, 20%)`
+      color: `hsl(${hue}, 80%, 20%)`,
     };
   };
 
@@ -55,54 +56,76 @@ const Display = ({ personsToShow, deletePerson }) => {
     const lightShift = ((hash >> 2) % 11) - 5;
 
     const finalHue = (base.hue + hueShift + 360) % 360;
-    const finalSat = Math.max(10, Math.min(100, base.sat + satShift));
-    const finalLight = Math.max(20, Math.min(95, base.light + lightShift));
+    const finalSat = Math.max(
+      10,
+      Math.min(100, base.sat + satShift),
+    );
+    const finalLight = Math.max(
+      20,
+      Math.min(95, base.light + lightShift),
+    );
 
-    const textColor = finalLight > 50
-      ? `hsl(${finalHue}, ${finalSat}%, 20%)`
-      : `hsl(${finalHue}, ${finalSat}%, 90%)`;
+    const textColor =
+      finalLight > 50
+        ? `hsl(${finalHue}, ${finalSat}%, 20%)`
+        : `hsl(${finalHue}, ${finalSat}%, 90%)`;
 
     return {
       backgroundColor: `hsl(${finalHue}, ${finalSat}%, ${finalLight}%)`,
-      color: textColor
+      color: textColor,
     };
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchColors = async () => {
-      const newStyles = {};
+      let cacheUpdated = false;
 
       for (const person of personsToShow) {
-        const queryName = person.name?.trim().toLowerCase();
-
-        if (!queryName) {
-          newStyles[person.name] = getFallbackStyle(person.name);
+        if (!person.name || styleCache.current[person.name]) {
           continue;
         }
 
+        const queryName = person.name.trim().toLowerCase();
+
         try {
           const response = await fetch(
-            `https://pokeapi.co/api/v2/pokemon-species/${queryName}`
+            `https://pokeapi.co/api/v2/pokemon-species/${queryName}`,
           );
 
           if (!response.ok) {
-            newStyles[person.name] = getFallbackStyle(person.name);
+            styleCache.current[person.name] = getFallbackStyle(
+              person.name,
+            );
+            cacheUpdated = true;
             continue;
           }
 
           const data = await response.json();
           const colorName = data?.color?.name;
 
-          newStyles[person.name] = getPokemonShadeStyle(colorName, person.name);
+          styleCache.current[person.name] =
+            getPokemonShadeStyle(colorName, person.name);
+          cacheUpdated = true;
         } catch {
-          newStyles[person.name] = getFallbackStyle(person.name);
+          styleCache.current[person.name] = getFallbackStyle(
+            person.name,
+          );
+          cacheUpdated = true;
         }
       }
 
-      setPersonStyles(newStyles);
+      if (cacheUpdated && isMounted) {
+        setPersonStyles({ ...styleCache.current });
+      }
     };
 
     fetchColors();
+
+    return () => {
+      isMounted = false;
+    };
   }, [personsToShow]);
 
   const getStyleForPerson = (name) => {
@@ -134,7 +157,9 @@ const Display = ({ personsToShow, deletePerson }) => {
                 style={getStyleForPerson(person.name)}
               >
                 <td className="contactName">{person.name}</td>
-                <td className="contactNumber">{person.number}</td>
+                <td className="contactNumber">
+                  {person.number}
+                </td>
                 <td className="actionDelete">
                   <button
                     className="deleteButton"
