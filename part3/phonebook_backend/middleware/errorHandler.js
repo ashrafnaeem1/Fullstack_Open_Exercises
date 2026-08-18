@@ -7,7 +7,7 @@ const unknownEndpoint = (request, response) => {
 
 // Registered last. Express recognizes this as an error handler because
 // it takes four arguments.
-const errorHandler = (error, request, response) => {
+const errorHandler = (error, request, response, _next) => {
   console.error(error.message)
 
   // Errors we threw ourselves (missing field, duplicate name, not found).
