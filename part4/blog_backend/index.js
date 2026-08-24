@@ -1,5 +1,5 @@
 require('dotenv').config()
-const Person = require('./models/person')
+const Blog = require('./models/blog')
 const {
   MissingFieldError,
   DuplicateNameError,
@@ -51,84 +51,97 @@ app.get('/', (request, response) => {
 })
 
 app.get(
-  '/api/persons',
+  '/api/blogs',
   asyncHandler(async (request, response) => {
-    const persons = await Person.find({})
-    response.json(persons)
+    const blogs = await Blog.find({})
+    response.json(blogs)
   }),
 )
 
 app.get(
-  '/api/persons/:id',
+  '/api/blogs/:id',
   asyncHandler(async (request, response) => {
-    const person = await Person.findById(request.params.id)
-    if (!person) {
+    const blog = await Blog.findById(request.params.id)
+    if (!blog) {
       throw new NotFoundError()
     }
-    response.json(person)
+    response.json(blog)
   }),
 )
 
 app.get(
   '/info',
   asyncHandler(async (request, response) => {
-    const headcount = await Person.countDocuments({})
+    const headcount = await Blog.countDocuments({})
     response.send(getInfoText(headcount))
   }),
 )
 
 app.delete(
-  '/api/persons/:id',
+  '/api/blogs/:id',
   asyncHandler(async (request, response) => {
-    await Person.findByIdAndDelete(request.params.id)
+    await Blog.findByIdAndDelete(request.params.id)
     response.status(204).end()
   }),
 )
 
 app.post(
-  '/api/persons',
+  '/api/blogs',
   asyncHandler(async (request, response) => {
-    const { name, number } = request.body
+    const { title, author, url, likes } = request.body
 
-    if (!name) {
-      throw new MissingFieldError('name')
+    if (!title) {
+      throw new MissingFieldError('title')
     }
-    if (!number) {
-      throw new MissingFieldError('number')
+    if (!author) {
+      throw new MissingFieldError('author')
+    }
+    if (!url) {
+      throw new MissingFieldError('url')
+    }
+    if (!likes) {
+      throw new MissingFieldError('likes')
     }
 
-    const existingPerson = await Person.findOne({ name })
-    if (existingPerson) {
+    const existingBlog = await Blog.findOne({ title })
+    if (existingBlog) {
       throw new DuplicateNameError()
     }
 
-    const person = new Person({ name, number })
-    const savedPerson = await person.save()
-    response.json(savedPerson)
+    const blog = new Blog({ title, author, url, likes })
+    const savedBlog = await blog.save()
+    response.json(savedBlog)
   }),
 )
 
-// Update an existing person's number (used when the webapp detects a
-// duplicate name and the user confirms overwriting it).
 app.put(
-  '/api/persons/:id',
+  '/api/blogs/:id',
   asyncHandler(async (request, response) => {
-    const { name, number } = request.body
+    const { title, author, url, likes } = request.body
 
-    if (!number) {
-      throw new MissingFieldError('number')
+    if (!title) {
+      throw new MissingFieldError('title')
+    }
+    if (!author) {
+      throw new MissingFieldError('author')
+    }
+    if (!url) {
+      throw new MissingFieldError('url')
+    }
+    if (!likes) {
+      throw new MissingFieldError('likes')
     }
 
-    const updatedPerson = await Person.findByIdAndUpdate(
+    const updatedBlog = await Blog.findByIdAndUpdate(
       request.params.id,
-      { name, number },
+      { title, author, url, likes },
       { new: true, runValidators: true, context: 'query' },
     )
 
-    if (!updatedPerson) {
+    if (!updatedBlog) {
       throw new NotFoundError()
     }
-    response.json(updatedPerson)
+    response.json(updatedBlog)
   }),
 )
 

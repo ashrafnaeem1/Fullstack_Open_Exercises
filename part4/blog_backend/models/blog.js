@@ -10,8 +10,9 @@ const DB_HOST = process.env.DB_HOST
 const DB_USER = process.env.DB_USER
 const DB_PASS = process.env.DB_PASS
 const DB_APP_NAME = process.env.DB_APP_NAME
+const CURR_APP = 'blog'
 
-const uri = `mongodb+srv://${DB_USER}:${DB_PASS}@${DB_HOST}/phonebook?retryWrites=true&w=majority&appName=${DB_APP_NAME}`
+const uri = `mongodb+srv://${DB_USER}:${DB_PASS}@${DB_HOST}/${CURR_APP}?retryWrites=true&w=majority&appName=${DB_APP_NAME}`
 
 console.log('connecting to', get_masked_uri())
 mongoose
@@ -24,32 +25,14 @@ mongoose
     console.log('error connecting to MongoDB:', error.message)
   })
 
-const personSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    minLength: [
-      3,
-      '\n\n--\n' +
-        'Name must be atleast 3 characters long.\n' +
-        '--\n\n',
-    ],
-  },
-  number: {
-    type: String,
-    validate: [
-      (num) => /^(\d{2}-\d{6,}|\d{3}-\d{5,})$/.test(num),
-      '\n\n--\n' +
-        'The number must start with 2 or 3 digits, followed by a hyphen (-).      \n' +
-        'and must have at least 8 total digits (e.g., 12-345678 or 123-45678).    \n' +
-        'Extra digits can optionally be added at the end.                         \n' +
-        'Example: 09-1234556 and 040-22334455 are valid phone numbers but         \n' +
-        '         1234556, 1-22334455 and 10-22-334455 are invalid.               \n' +
-        '--\n\n',
-    ],
-  },
+const blogSchema = new mongoose.Schema({
+  title: String,
+  author: String,
+  url: String,
+  likes: Number,
 })
 
-personSchema.set('toJSON', {
+blogSchema.set('toJSON', {
   transform: (document, returnedObject) => {
     returnedObject.id = returnedObject._id.toString()
     delete returnedObject._id
@@ -57,7 +40,7 @@ personSchema.set('toJSON', {
   },
 })
 
-module.exports = mongoose.model('Person', personSchema)
+module.exports = mongoose.model('Person', blogSchema)
 
 function get_masked_uri() {
   let output_uri = uri
